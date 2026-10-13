@@ -4,9 +4,8 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createMockModel } from './mock-model';
 import { createInterface } from 'node:readline';
 import { weatherTool, calculatorTool } from './tools/utility-tools';
-import { angetLoop } from './agent/loop';
+import { agentLoop, BudgetState } from './agent/loop';
 
-const tools = { get_weather: weatherTool, calculator: calculatorTool };
 const system = `你是 Super Agent，一个专注于软件开发的 AI 助手。
 你说话简洁直接，喜欢用代码示例来解释问题。
 如果用户的问题不够清晰，你会反问而不是瞎猜。`;
@@ -20,12 +19,17 @@ const model = process.env.DASHSCOPE_API_KEY
 	? qwen.chat('qwen-plus-latest')
 	: createMockModel();
 
+const tools = { get_weather: weatherTool, calculator: calculatorTool };
+const messages: ModelMessage[] = [];
+// 预算由调用方持有，跨轮持续累积；agentLoop 只负责消费它
+const budget: BudgetState = {
+	used: 0,
+	limit: 15000,
+};
 const rl = createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
-
-const messages: ModelMessage[] = [];
 
 function ask() {
 	rl.question('\nYou: ', async (input) => {
@@ -38,7 +42,7 @@ function ask() {
 
 		messages.push({ role: 'user', content: trimmed });
 
-		await angetLoop(model, tools, messages, system);
+		await agentLoop(model, tools, messages, system, budget);
 
 		//     const result = streamText({
 		//       model,
@@ -76,5 +80,6 @@ function ask() {
 	});
 }
 
-console.log('Super Agent v0.2 (type "exit" to quit)\n');
+console.log('Super Agent v0.3 — Fuses (type "exit" to quit)\n');
+console.log('试试输入："测试死循环"、"测试重试"、"测试预算" 看三层防护效果\n');
 ask();
