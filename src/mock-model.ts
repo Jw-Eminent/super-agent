@@ -1,10 +1,11 @@
 /**
- * Mock Model v0.4 — Tool System (LanguageModelV3)
+ * Mock Model v0.4.1 — Tool System (LanguageModelV3)
  *
  * 基于 MockLanguageModelV3，在 v0.3 基础上新增：
- * - 文件操作工具支持（read_file, list_directory）
+ * - 文件操作工具支持（read_file, list_directory, edit_file）
  * - "测试并发"：同时调用 3 个工具，验证并发执行
  * - "测试截断"：读取大文件，验证结果截断
+ * - "测试编辑" / "测试搜索" / "测试glob" / "测试bash"
  * - 多工具调用（parallel tool calls）
  */
 
@@ -14,9 +15,8 @@ let retryTestCount = 0;
 
 const TEXT_RESPONSES: Record<string, string> = {
 	default:
-		'你好！我是 Super Agent v0.4，现在有完整的工具系统了。试试让我读文件、查目录，或者输入"测试并发"、"测试截断"看看新功能。',
-	greeting:
-		'你好！我是 Super Agent v0.4，带有工具注册、结果截断和并发执行能力 :)',
+		'你好！我是 Super Agent v0.4.1，现在有 9 个内置工具了。试试"测试编辑"、"测试搜索"、"测试glob"、"测试bash"看看新功能。',
+	greeting: '你好！我是 Super Agent v0.4.1，支持文件编辑、搜索、命令执行 :)',
 };
 
 interface ToolCallIntent {
@@ -68,12 +68,46 @@ function detectToolIntent(prompt: any[]): ToolCallIntent | null {
 		return { toolName: 'read_file', args: { path: 'sample-data.txt' } };
 	}
 
+	if (text.includes('测试编辑') || text.includes('test edit')) {
+		return {
+			toolName: 'edit_file',
+			args: {
+				path: 'sample-data.txt',
+				old_string: '一、工具注册机制',
+				new_string: '一、工具注册机制（已更新）',
+			},
+		};
+	}
+
+	if (text.includes('测试搜索') || text.includes('test grep')) {
+		return { toolName: 'grep', args: { pattern: 'export', path: 'src' } };
+	}
+
+	if (text.includes('测试glob') || text.includes('test glob')) {
+		return { toolName: 'glob', args: { pattern: '**/*.ts' } };
+	}
+
+	if (text.includes('测试bash') || text.includes('test bash')) {
+		return {
+			toolName: 'bash',
+			args: { command: 'echo "Hello from bash!" && date' },
+		};
+	}
+
 	if (
 		text.includes('目录') ||
 		text.includes('文件列表') ||
 		text.includes('ls')
 	) {
 		return { toolName: 'list_directory', args: { path: '.' } };
+	}
+
+	if (
+		(text.includes('搜') || text.includes('找') || text.includes('grep')) &&
+		!text.includes('文件')
+	) {
+		const keyword = text.replace(/.*(?:搜|找|grep)\s*/, '').trim() || 'TODO';
+		return { toolName: 'grep', args: { pattern: keyword, path: '.' } };
 	}
 
 	const fileMatch = text.match(/(\S+\.[\w]+)/);
@@ -219,7 +253,11 @@ function pickTextResponse(prompt: any[]): string {
 			}
 			return `根据查询结果：${combined}`;
 		}
-		if (combined.includes('已写入')) {
+		if (
+			combined.includes('已写入') ||
+			combined.includes('已替换') ||
+			combined.includes('编辑')
+		) {
 			return `文件操作完成：${combined}`;
 		}
 		if (combined.includes('=')) {
@@ -237,7 +275,7 @@ function pickTextResponse(prompt: any[]): string {
 export function createMockModel() {
 	return new MockLanguageModelV3({
 		provider: 'mock',
-		modelId: 'mock-model-v0.4',
+		modelId: 'mock-model-v0.4.1',
 		supportedUrls() {
 			return Promise.resolve({});
 		},
