@@ -1,0 +1,31 @@
+src/agent/loop.ts
+  s_0cdd7d9e8768f5::t_1aa50d6ec8f75a 47-51
+package.json
+  h_13a0cb8c57a19f 27-28
+  s_0cdd7d9e8768f5::t_cafc20e800d29a 33
+src/tools/search-tools.ts
+  h_13a0cb8c57a19f 1-150
+src/tools/index.ts
+  h_13a0cb8c57a19f 12,488-489
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "acba0137a572d0684e80b05f1a4a0c5662eb683a",
+  "prompts": {},
+  "humans": {
+    "h_13a0cb8c57a19f": {
+      "author": "Wangjunwei <junwei.wang@trip.com>"
+    }
+  },
+  "sessions": {
+    "s_0cdd7d9e8768f5": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4db9ae7f-9a8d-4b30-a421-da82157842c7",
+        "model": "default"
+      },
+      "human_author": "Wangjunwei <junwei.wang@trip.com>"
+    }
+  }
+}
