@@ -9,6 +9,7 @@ import { join, relative, resolve, extname } from 'node:path';
 import { execSync } from 'node:child_process';
 import { createServer, type Server } from 'node:http';
 import fg from 'fast-glob';
+import { pickSearchTool, webFetchTool } from './search-tools.js';
 import type { ToolDefinition } from './tool-registry.js';
 
 export const weatherTool: ToolDefinition = {
@@ -484,4 +485,6 @@ export const allTools: ToolDefinition[] = [
 	bashTool,
 	fetchUrlTool,
 	startPreviewTool,
+	pickSearchTool(),
+	webFetchTool,
 ];

@@ -44,7 +44,11 @@ export async function agentLoop(
 					messages,
 					system,
 					maxRetries: 0,
-					onError: (error) => {},
+					onError: ({ error }) => {
+						console.error(
+							`  [流错误] ${error instanceof Error ? error.message : String(error)}`,
+						);
+					},
 				});
 				for await (const chunk of result.fullStream) {
 					switch (chunk.type) {
