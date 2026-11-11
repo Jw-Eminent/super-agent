@@ -1,0 +1,35 @@
+src/tools/mcp-client.manual.ts
+  s_b2875bf2c66857::t_e7124624259ca1 7-227
+  s_b2875bf2c66857::t_4efeb69769741d 1-6
+src/tools/mcp-client.ts
+  h_13a0cb8c57a19f 8-14,21-23,26-37,43-44,48-49,51-53,61-63,77-80,86-167
+  s_b2875bf2c66857::t_1878dd72cfef9f 1-7,15-20,24-25,38-42,45-47,50,54-60,64-76,81-85
+src/index.ts
+  h_13a0cb8c57a19f 9,27-63,104
+  s_b2875bf2c66857::t_73d3ea756a4418 83,92-103,105-111
+src/tools/tool-registry.ts
+  h_13a0cb8c57a19f 2,108-151
+package.json
+  s_b2875bf2c66857::t_18e2ba03809756 25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "34af42acb5fefca5971a3345db2d243540b6ec14",
+  "prompts": {},
+  "humans": {
+    "h_13a0cb8c57a19f": {
+      "author": "Wangjunwei <junwei.wang@trip.com>"
+    }
+  },
+  "sessions": {
+    "s_b2875bf2c66857": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0c8a41ee-bab3-4409-900d-21bc91c6dadf",
+        "model": "default"
+      },
+      "human_author": "Wangjunwei <junwei.wang@trip.com>"
+    }
+  }
+}
