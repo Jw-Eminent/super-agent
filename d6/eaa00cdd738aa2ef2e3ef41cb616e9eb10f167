@@ -1,0 +1,33 @@
+package.json
+  h_13a0cb8c57a19f 9-10
+src/index.ts
+  h_13a0cb8c57a19f 2,10-18,118-121,127-131,137,140-150,152-160,172,182-196,199-200
+  s_0cdd7d9e8768f5::t_f500a3350d1345 132-136,151
+src/session/store.ts
+  h_13a0cb8c57a19f 1-67
+src/context/prompt-builder.ts
+  h_13a0cb8c57a19f 1-70
+src/agent/loop.ts
+  h_13a0cb8c57a19f 23,120-121,129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.52-trip",
+  "base_commit_sha": "d6eaa00cdd738aa2ef2e3ef41cb616e9eb10f167",
+  "prompts": {},
+  "humans": {
+    "h_13a0cb8c57a19f": {
+      "author": "Wangjunwei <junwei.wang@trip.com>"
+    }
+  },
+  "sessions": {
+    "s_0cdd7d9e8768f5": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4db9ae7f-9a8d-4b30-a421-da82157842c7",
+        "model": "default"
+      },
+      "human_author": "Wangjunwei <junwei.wang@trip.com>"
+    }
+  }
+}
