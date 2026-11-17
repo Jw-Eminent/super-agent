@@ -20,7 +20,7 @@ export async function agentLoop(
 	registry: ToolRegistry,
 	messages: ModelMessage[],
 	system: string,
-	budget: BudgetState,
+	budget?: BudgetState,
 ) {
 	let step = 0;
 	resetHistory();
@@ -117,13 +117,16 @@ export async function agentLoop(
 		// Token 预算追踪：AI SDK 的 usage 已是扁平 number，不是 provider 层的 { total }
 		const inp = stepUsage.inputTokens ?? 0;
 		const out = stepUsage.outputTokens ?? 0;
-		budget.used += inp + out;
-		console.log(
-			`  [预算] 本步 ${inp + out} tokens，累计 ${budget.used}/${budget.limit}`,
-		);
-		if (budget.used >= budget.limit) {
-			console.log('\n[预算熔断] Token 用量已达上限，Agent 已停止');
-			break;
+
+		if (budget) {
+			budget.used += inp + out;
+			console.log(
+				`  [预算] 本步 ${inp + out} tokens，累计 ${budget.used}/${budget.limit}`,
+			);
+			if (budget.used >= budget.limit) {
+				console.log('\n[预算熔断] Token 用量已达上限，Agent 已停止');
+				break;
+			}
 		}
 
 		// 退出条件：模型没有调用任何工具，说明它认为可以直接回复了
