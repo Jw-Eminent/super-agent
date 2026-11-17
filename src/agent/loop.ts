@@ -42,7 +42,7 @@ export async function agentLoop(
 					model,
 					tools: registry.toAISDKFormat(),
 					messages,
-					system,
+					system: system + registry.getDeferredToolSummary(),
 					maxRetries: 0,
 					onError: ({ error }) => {
 						console.error(

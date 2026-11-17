@@ -3,7 +3,7 @@ import { type ModelMessage } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createMockModel } from './mock-model';
 import { createInterface } from 'node:readline';
-import { ToolRegistry } from './tools/tool-registry';
+import { ToolDefinition, ToolRegistry } from './tools/tool-registry';
 import { allTools } from './tools';
 import { agentLoop, BudgetState } from './agent/loop';
 import { MCPClient, MockMCPClient } from './tools/mcp-client';
@@ -22,7 +22,49 @@ const model = process.env.DASHSCOPE_API_KEY
 	: createMockModel();
 
 const registry = new ToolRegistry();
-registry.register(...allTools);
+
+const toolSearchTool: ToolDefinition = {
+	name: 'tool_search',
+	description:
+		'获取延迟工具的完整定义。传入工具名（从系统提示的延迟工具列表中选取），返回该工具的完整参数 Schema',
+	parameters: {
+		type: 'object',
+		properties: {
+			query: {
+				type: 'string',
+				description:
+					'工具名，如 "mcp__github__list_issues"。支持逗号分隔多个工具名',
+			},
+		},
+		required: ['query'],
+		additionalProperties: false,
+	},
+	isConcurrencySafe: true,
+	isReadOnly: true,
+	execute: async ({ query }: { query: string }) => {
+		const results = registry.searchTools(query);
+		if (results.length === 0) return `没有找到匹配 "${query}" 的工具`;
+		return results.map((t) => ({
+			name: t.name,
+			description: t.description,
+			parameters: t.parameters,
+		}));
+	},
+};
+
+registry.register(toolSearchTool, ...allTools);
+
+const allCount = registry.getAll().length;
+const activeTools = registry.getActiveTools();
+const estimate = registry.countTokenEstimate();
+
+console.log(`\n=== 工具统计 ===`);
+console.log(`  全部工具: ${allCount} 个`);
+console.log(`  活跃工具: ${activeTools.length} 个`);
+console.log(`  延迟工具: ${allCount - activeTools.length} 个`);
+console.log(
+	`  Token 估算: ~${estimate.active} (活跃) + ~${estimate.deferred} (延迟，不占 prompt)`,
+);
 
 async function connectMCP() {
 	const githubToken = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
@@ -67,7 +109,7 @@ const messages: ModelMessage[] = [];
 // 预算由调用方持有，跨轮持续累积；agentLoop 只负责消费它
 const budget: BudgetState = {
 	used: 0,
-	limit: 15000,
+	limit: 50000,
 };
 const rl = createInterface({
 	input: process.stdin,
