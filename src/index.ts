@@ -5,7 +5,7 @@ import { createMockModel } from './mock-model';
 import { createInterface } from 'node:readline';
 import { ToolDefinition, ToolRegistry } from './tools/tool-registry';
 import { allTools } from './tools';
-import { agentLoop, BudgetState } from './agent/loop';
+import { agentLoop } from './agent/loop';
 import { MCPClient, MockMCPClient } from './tools/mcp-client';
 import { SessionStore } from './session/store';
 import {
@@ -16,6 +16,7 @@ import {
 	sessionContext,
 	toolGuide,
 } from './context/prompt-builder';
+import { compactConversation } from './context/compressor.js';
 
 const system = `你是 Super Agent，一个专注于软件开发的 AI 助手。
 你说话简洁直接，喜欢用代码示例来解释问题。
@@ -114,12 +115,6 @@ async function connectMCP() {
 	console.log(`  已注册 ${tools.length} 个 Mock MCP 工具`);
 }
 
-// 预算由调用方持有，跨轮持续累积；agentLoop 只负责消费它
-// const budget: BudgetState = {
-// 	used: 0,
-// 	limit: 50000,
-// };
-
 async function main() {
 	await connectMCP();
 
@@ -130,12 +125,49 @@ async function main() {
 	const sessionId = 'default';
 	const store = new SessionStore(sessionId);
 	// 必须把磁盘历史放进真正传给模型的 messages，否则 continue 只“读了文件”却不带上下文
-	const messages: ModelMessage[] =
-		isContinue && store.exists() ? store.load() : [];
-	if (messages.length > 0) {
+	let messages: ModelMessage[] = [];
+	if (isContinue && store.exists()) {
+		messages = store.load();
 		console.log(`[Session] 恢复会话，${messages.length} 条历史消息`);
 	} else {
-		console.log(`[Session] 新会话`);
+		// 新会话：清空旧文件，避免后续 replaceAll/append 和磁盘残留历史搅在一起
+		store.clear();
+		console.log(`[Session] 新会话（已清空历史文件）`);
+	}
+
+	// 压缩状态放在 index（会话层），不侵入 agentLoop
+	let compactionSummary = '';
+
+	/** @returns 内存是否被改写（micro 清空或 summary 压缩都算），需要 replaceAll 落盘 */
+	async function applyCompaction(label: string): Promise<boolean> {
+		const result = await compactConversation(
+			model,
+			messages,
+			compactionSummary,
+		);
+		messages = result.messages;
+		compactionSummary = result.summary;
+
+		if (result.cleared > 0) {
+			console.log(
+				`  [压缩/micro] ${label}：清空 ${result.cleared} 条旧工具结果`,
+			);
+		}
+		if (result.compressedCount > 0) {
+			console.log(
+				`  [压缩/summary] ${label}：压缩 ${result.compressedCount} 条消息`,
+			);
+		}
+		// 以前只在 summarize 时 replaceAll，micro 清了内存却不写盘，jsonl 里搜不到 cleared
+		return result.cleared > 0 || result.compressedCount > 0;
+	}
+
+	// 启动预压缩：continue 长历史先压一轮
+	if (messages.length > 0) {
+		console.log('[压缩] 启动前预压缩...');
+		if (await applyCompaction('启动')) {
+			store.replaceAll(messages);
+		}
 	}
 
 	// Prompt Pipe 组装 system prompt
@@ -180,23 +212,30 @@ async function main() {
 				return;
 			}
 
+			// 调用前压一轮：让模型看到的是压缩后的历史
+			let rewritten = await applyCompaction('调用前');
+
 			const useMsg: UserModelMessage = { role: 'user', content: trimmed };
 			messages.push(useMsg);
-			store.append(useMsg);
 
 			const beforeLen = messages.length;
-			// await agentLoop(model, registry, messages, system, budget);
 			await agentLoop(model, registry, messages, SYSTEM);
 
-			// 持久化本轮新增的消息（agent loop 会往 messages 里 push assistant/tool 消息）
-			const newMessages = messages.slice(beforeLen);
-			store.appendAll(newMessages);
+			// 调用后压一轮：清掉本轮工具结果膨胀，留给下一轮
+			rewritten = (await applyCompaction('调用后')) || rewritten;
+
+			if (rewritten) {
+				store.replaceAll(messages);
+			} else {
+				// 用户消息 + 本轮新增的 assistant/tool
+				store.appendAll(messages.slice(beforeLen - 1));
+			}
 
 			ask();
 		});
 	}
 
-	console.log('Super Agent v0.7 — Session + Prompt Pipe (type "exit" to quit)');
+	console.log('Super Agent v0.8 — Session + Compaction (type "exit" to quit)');
 	console.log('对话会自动保存。用 pnpm run continue 恢复上次对话。\n');
 	ask();
 }

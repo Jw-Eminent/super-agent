@@ -76,12 +76,13 @@ export class ToolRegistry {
 		const activeTools = this.getActiveTools();
 
 		for (const tool of activeTools) {
+			const name = tool.name;
 			const maxChars = tool.maxResultChars;
 			const executeFn = tool.execute;
 			const isSafe = tool.isConcurrencySafe === true;
 			const registry = this;
 
-			result[tool.name] = {
+			result[name] = {
 				description: tool.description,
 				inputSchema: jsonSchema(tool.parameters as any),
 				execute: async (input: any) => {

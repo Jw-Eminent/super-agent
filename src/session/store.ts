@@ -1,4 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, appendFileSync } from 'node:fs';
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	appendFileSync,
+	writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import type { ModelMessage } from 'ai';
 
@@ -39,6 +45,25 @@ export class SessionStore {
 		for (const msg of messages) {
 			this.append(msg);
 		}
+	}
+
+	/** 新会话启动时清空历史文件 */
+	clear(): void {
+		writeFileSync(this.filePath, '', 'utf-8');
+	}
+
+	/** 压缩改写整段历史后覆盖写盘 */
+	replaceAll(messages: ModelMessage[]): void {
+		const body = messages
+			.map((message) =>
+				JSON.stringify({
+					type: 'message',
+					timestamp: new Date().toISOString(),
+					message,
+				} satisfies SessionEntry),
+			)
+			.join('\n');
+		writeFileSync(this.filePath, body ? body + '\n' : '', 'utf-8');
 	}
 
 	load(): ModelMessage[] {
